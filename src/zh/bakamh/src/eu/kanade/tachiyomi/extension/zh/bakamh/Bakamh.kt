@@ -1,10 +1,6 @@
 package eu.kanade.tachiyomi.extension.zh.bakamh
 
 import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.baseUrl
-import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.preferenceMigration
-import eu.kanade.tachiyomi.lib.randomua.UserAgentType
-import eu.kanade.tachiyomi.lib.randomua.setRandomUserAgent
 import eu.kanade.tachiyomi.multisrc.madara.Madara
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -24,19 +20,28 @@ class Bakamh :
         SimpleDateFormat("yyyy 年 M 月 d 日", Locale.CHINESE),
     ),
     ConfigurableSource {
-    private val preferences = getPreferences { preferenceMigration() }
 
-    override val baseUrl by lazy { preferences.baseUrl() }
+    private val preferences = getPreferences { BakamhPreferences.preferenceMigration(it) }
+
+    override val baseUrl by lazy { BakamhPreferences.baseUrl(preferences) }
+
+    private val myUserAgent = "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.110 YaBrowser/25.12.2.123 Mobile Safari/537.36"
 
     override val client = network.cloudflareClient.newBuilder()
-        .setRandomUserAgent(UserAgentType.MOBILE)
-        .addInterceptor(UserAgentClientHintsInterceptor())
         .build()
 
     override fun headersBuilder(): Headers.Builder {
-        return super.headersBuilder()
+        return Headers.Builder()
+            .add("User-Agent", myUserAgent)
+            .add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
             .add("Accept-Language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")
             .add("Referer", "$baseUrl/")
+            .add("Cache-Control", "max-age=0")
+            .add("Sec-Fetch-Dest", "document")
+            .add("Sec-Fetch-Mode", "navigate")
+            .add("Sec-Fetch-Site", "same-origin")
+            .add("Sec-Fetch-User", "?1")
+            .add("Upgrade-Insecure-Requests", "1")
     }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
@@ -45,6 +50,7 @@ class Bakamh :
     }
 
     override val mangaDetailsSelectorStatus = ".post-content_item:contains(状态) .summary-content"
+
     override fun chapterListSelector() =
         ".chapter-loveYou a, li:not(.menu-item) a[onclick], li:not(.menu-item) a"
 
@@ -53,10 +59,10 @@ class Bakamh :
         return response.asJsoup()
             .select(chapterListSelector())
             .mapNotNull { parseChapter(it, mangaUrl) }
+            .distinctBy { it.url }
     }
 
     private fun parseChapter(element: Element, mangaUrl: String): SChapter? {
-        // Current URL attribute
         if (element.hasAttr("storage-chapter-url")) {
             return SChapter.create().apply {
                 url = element.absUrl("storage-chapter-url")
@@ -65,13 +71,12 @@ class Bakamh :
             }
         }
 
-        // Compatibility operation for modified versions
         return element.attributes()
             .firstOrNull { attr ->
                 val value = attr.value.lowercase()
                 value.startsWith(mangaUrl) &&
-                    value != mangaUrl && // Not current URL
-                    !value.startsWith("$mangaUrl#comment") // Not comment
+                    value != mangaUrl &&
+                    !value.startsWith("$mangaUrl#comment")
             }
             ?.let { attr ->
                 SChapter.create().apply {
