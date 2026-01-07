@@ -32,7 +32,12 @@ class Bakamh :
 
     override fun headersBuilder(): Headers.Builder {
         return super.headersBuilder()
-            .add("User-Agent", "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.110 YaBrowser/25.12.2.123 Mobile Safari/537.36")
+            .add(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) " +
+                    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                    "Chrome/143.0.7499.110 YaBrowser/25.12.2.123 Mobile Safari/537.36",
+            )
             .add("Accept-Language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")
             .add("Referer", "$baseUrl/")
     }
