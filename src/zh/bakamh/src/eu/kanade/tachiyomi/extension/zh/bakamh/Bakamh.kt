@@ -3,6 +3,8 @@ package eu.kanade.tachiyomi.extension.zh.bakamh
 import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.baseUrl
 import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.preferenceMigration
+import eu.kanade.tachiyomi.lib.randomua.UserAgentType
+import eu.kanade.tachiyomi.lib.randomua.setRandomUserAgent
 import eu.kanade.tachiyomi.multisrc.madara.Madara
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -22,22 +24,17 @@ class Bakamh :
         SimpleDateFormat("yyyy 年 M 月 d 日", Locale.CHINESE),
     ),
     ConfigurableSource {
+    private val preferences = getPreferences { preferenceMigration() }
 
-    private val preferences = getPreferences { it.preferenceMigration() }
-
-    override val baseUrl: String by lazy { preferences.baseUrl() }
-
-    private val myUserAgent = "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) " +
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.110 " +
-        "YaBrowser/25.12.2.123 Mobile Safari/537.36"
+    override val baseUrl by lazy { preferences.baseUrl() }
 
     override val client = network.cloudflareClient.newBuilder()
+        .setRandomUserAgent(UserAgentType.MOBILE)
         .addInterceptor(UserAgentClientHintsInterceptor())
         .build()
 
     override fun headersBuilder(): Headers.Builder {
         return super.headersBuilder()
-            .set("User-Agent", myUserAgent)
             .add("Accept-Language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")
             .add("Referer", "$baseUrl/")
     }
@@ -48,7 +45,6 @@ class Bakamh :
     }
 
     override val mangaDetailsSelectorStatus = ".post-content_item:contains(状态) .summary-content"
-
     override fun chapterListSelector() =
         ".chapter-loveYou a, li:not(.menu-item) a[onclick], li:not(.menu-item) a"
 
@@ -60,6 +56,7 @@ class Bakamh :
     }
 
     private fun parseChapter(element: Element, mangaUrl: String): SChapter? {
+        // Current URL attribute
         if (element.hasAttr("storage-chapter-url")) {
             return SChapter.create().apply {
                 url = element.absUrl("storage-chapter-url")
@@ -68,12 +65,13 @@ class Bakamh :
             }
         }
 
+        // Compatibility operation for modified versions
         return element.attributes()
             .firstOrNull { attr ->
                 val value = attr.value.lowercase()
                 value.startsWith(mangaUrl) &&
-                    value != mangaUrl &&
-                    !value.startsWith("$mangaUrl#comment")
+                    value != mangaUrl && // Not current URL
+                    !value.startsWith("$mangaUrl#comment") // Not comment
             }
             ?.let { attr ->
                 SChapter.create().apply {
