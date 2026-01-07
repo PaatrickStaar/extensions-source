@@ -27,7 +27,6 @@ class Bakamh :
 
     override val baseUrl: String by lazy { preferences.baseUrl() }
 
-    // 将长字符串拆分换行，防止 Lint 报错行过长
     private val myUserAgent = "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) " +
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.110 " +
         "YaBrowser/25.12.2.123 Mobile Safari/537.36"
