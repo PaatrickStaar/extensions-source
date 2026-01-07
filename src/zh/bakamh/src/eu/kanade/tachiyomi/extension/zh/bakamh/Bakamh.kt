@@ -3,8 +3,6 @@ package eu.kanade.tachiyomi.extension.zh.bakamh
 import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.baseUrl
 import eu.kanade.tachiyomi.extension.zh.bakamh.BakamhPreferences.preferenceMigration
-import eu.kanade.tachiyomi.lib.randomua.UserAgentType
-import eu.kanade.tachiyomi.lib.randomua.setRandomUserAgent
 import eu.kanade.tachiyomi.multisrc.madara.Madara
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -29,12 +27,12 @@ class Bakamh :
     override val baseUrl by lazy { preferences.baseUrl() }
 
     override val client = network.cloudflareClient.newBuilder()
-        .setRandomUserAgent(UserAgentType.MOBILE)
         .addInterceptor(UserAgentClientHintsInterceptor())
         .build()
 
     override fun headersBuilder(): Headers.Builder {
         return super.headersBuilder()
+            .add("User-Agent", "Mozilla/5.0 (Linux; arm_64; Android 16; SM-G965F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.110 YaBrowser/25.12.2.123 Mobile Safari/537.36")
             .add("Accept-Language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")
             .add("Referer", "$baseUrl/")
     }
