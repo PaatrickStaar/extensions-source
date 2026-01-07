@@ -1,8 +1,0 @@
-ext {
-    extName = 'KissLove'
-    extClass = '.KissLove'
-    extVersionCode = 17
-    isNsfw = true
-}
-
-apply from: "$rootDir/common.gradle"
